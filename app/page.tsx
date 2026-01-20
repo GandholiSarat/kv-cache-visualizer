@@ -322,9 +322,10 @@ export default function Home() {
 
 	return (
 		<main
+			className="responsive-main"
 			style={{
 				minHeight: "100vh",
-				padding: "24px",
+				padding: "16px",
 				background: "#020617",
 				color: "#e2e8f0",
 				fontFamily: "system-ui, sans-serif",
@@ -333,16 +334,16 @@ export default function Home() {
 			}}
 		>
 			{/* Header */}
-			<section style={{ display: "grid", gap: "8px", marginBottom: "24px" }}>
-				<h1 style={{ fontSize: "28px", fontWeight: 700, margin: 0 }}>KV Cache Visualizer</h1>
-				<p style={{ margin: 0, color: "#94a3b8", fontSize: "14px" }}>
+			<section className="header-section" style={{ display: "grid", gap: "8px", marginBottom: "16px" }}>
+				<h1 className="main-title" style={{ fontSize: "24px", fontWeight: 700, margin: 0 }}>KV Cache Visualizer</h1>
+				<p className="subtitle" style={{ margin: 0, color: "#94a3b8", fontSize: "13px" }}>
 					Real-time inference simulation: prefill → decode → streaming → eviction
 				</p>
-				<div style={{ display: "flex", gap: "16px", marginTop: "8px" }}>
-					<div style={{ fontSize: "13px", color: "#10b981", fontWeight: 600 }}>
+				<div className="status-badges" style={{ display: "flex", gap: "12px", marginTop: "8px", flexWrap: "wrap" }}>
+					<div className="status-badge" style={{ fontSize: "12px", color: "#10b981", fontWeight: 600 }}>
 						Inference Tick: {inferenceTick}
 					</div>
-					<div style={{ fontSize: "13px", color: "#3b82f6", fontWeight: 600 }}>
+					<div className="status-badge" style={{ fontSize: "12px", color: "#3b82f6", fontWeight: 600 }}>
 						Phase: {phaseLabel}
 					</div>
 				</div>
@@ -350,10 +351,11 @@ export default function Home() {
 
 			{/* Main layout */}
 			<section
+				className="main-grid"
 				style={{
 					display: "grid",
-					gridTemplateColumns: "300px 1fr 260px",
-					gap: "20px",
+					gridTemplateColumns: "1fr",
+					gap: "16px",
 					alignItems: "start",
 					maxWidth: "1400px",
 					margin: "0 auto",
@@ -400,24 +402,27 @@ export default function Home() {
 
 				{/* Center: Block visualization */}
 				<div
+					className="kv-visualization-container"
 					style={{
 						border: "1px solid #1e293b",
 						borderRadius: "8px",
 						background: "#0b1220",
-						padding: "16px",
+						padding: "12px",
 					}}
 				>
-					<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-						<div style={{ fontWeight: 700, color: "#e2e8f0" }}>KV Cache Blocks</div>
-						<div style={{ fontSize: "12px", color: "#94a3b8" }}>
+					<div className="kv-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", flexWrap: "wrap", gap: "8px" }}>
+						<div style={{ fontWeight: 700, color: "#e2e8f0", fontSize: "14px" }}>KV Cache Blocks</div>
+						<div style={{ fontSize: "11px", color: "#94a3b8" }}>
 							{mode === "prefill" ? "Filling cache" : "Streaming (sliding window)"}
 						</div>
 					</div>
-					<KVBlocks blocks={BLOCK_COUNT} capacityPerBlock={BLOCK_CAPACITY} entries={entries} />
+					<div className="kv-blocks-scroll" style={{ overflowX: "auto", overflowY: "visible" }}>
+						<KVBlocks blocks={BLOCK_COUNT} capacityPerBlock={BLOCK_CAPACITY} entries={entries} />
+					</div>
 				</div>
 
 				{/* Right: Legend and explanation */}
-				<div style={{ display: "grid", gap: "16px" }}>
+				<div className="legend-section" style={{ display: "grid", gap: "12px" }}>
 					<div
 						style={{
 							padding: "12px",

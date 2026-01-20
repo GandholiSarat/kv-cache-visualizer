@@ -17,8 +17,9 @@ export function MemoryStats({ totalSlots, newCount, reusedCount, pinnedCount, em
 
 	return (
 		<div
+			className="memory-stats"
 			style={{
-				padding: "14px",
+				padding: "12px",
 				border: "1px solid #1e293b",
 				borderRadius: "8px",
 				background: "#0b1220",

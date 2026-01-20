@@ -11,3 +11,128 @@ body {
   color: #e2e8f0;
   font-family: system-ui, -apple-system, sans-serif;
 }
+
+/* Responsive styles for mobile devices */
+
+/* Mobile-first: stack all sections vertically */
+.main-grid {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 16px !important;
+}
+
+/* Tablet and up: 2-column layout */
+@media (min-width: 768px) {
+  .main-grid {
+    grid-template-columns: 300px 1fr !important;
+    gap: 20px !important;
+  }
+  
+  .legend-section {
+    grid-column: 1 / -1;
+  }
+  
+  .responsive-main {
+    padding: 20px !important;
+  }
+  
+  .header-section {
+    margin-bottom: 20px !important;
+  }
+  
+  .main-title {
+    font-size: 26px !important;
+  }
+  
+  .subtitle {
+    font-size: 14px !important;
+  }
+  
+  .status-badge {
+    font-size: 13px !important;
+  }
+}
+
+/* Desktop: 3-column layout (original design) */
+@media (min-width: 1024px) {
+  .main-grid {
+    grid-template-columns: 300px 1fr 260px !important;
+  }
+  
+  .legend-section {
+    grid-column: auto;
+  }
+  
+  .responsive-main {
+    padding: 24px !important;
+  }
+  
+  .header-section {
+    margin-bottom: 24px !important;
+  }
+  
+  .main-title {
+    font-size: 28px !important;
+  }
+}
+
+/* Prevent horizontal overflow */
+.kv-blocks-scroll {
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  /* Add padding for better mobile scrolling */
+  padding-bottom: 8px;
+}
+
+.kv-blocks-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+
+.kv-blocks-scroll::-webkit-scrollbar-track {
+  background: #0f172a;
+  border-radius: 4px;
+}
+
+.kv-blocks-scroll::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+
+.kv-blocks-scroll::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Touch-friendly minimum sizes on mobile */
+@media (max-width: 767px) {
+  button, input[type="range"], select, textarea {
+    min-height: 44px;
+    font-size: 16px !important;
+  }
+  
+  input[type="range"] {
+    min-height: 32px;
+  }
+  
+  /* Better mobile text sizes */
+  .kv-header {
+    font-size: 13px !important;
+  }
+  
+  /* Ensure KV blocks are scrollable with momentum */
+  .kv-block-grid {
+    min-width: 300px;
+  }
+  
+  /* Improve padding on small screens */
+  .controls-panel,
+  .kv-visualization-container,
+  .legend-section > div {
+    padding: 10px !important;
+  }
+  
+  /* Make legend more compact on mobile */
+  .legend-section {
+    font-size: 11px !important;
+  }
+}

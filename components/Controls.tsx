@@ -47,10 +47,11 @@ export function Controls({
 
 	return (
 		<div
+			className="controls-panel"
 			style={{
 				display: "grid",
-				gap: "14px",
-				padding: "14px",
+				gap: "12px",
+				padding: "12px",
 				border: "1px solid #1e293b",
 				borderRadius: "8px",
 				background: "#0b1220",
@@ -60,20 +61,22 @@ export function Controls({
 			{/* Eviction Policy Selector */}
 			{evictionPolicy && (
 				<div>
-					<div style={{ fontSize: "13px", fontWeight: 600, color: "#cbd5e1", marginBottom: "6px" }}>
+					<div style={{ fontSize: "12px", fontWeight: 600, color: "#cbd5e1", marginBottom: "6px" }}>
 						Eviction Policy
 					</div>
 					<select
 						value={evictionPolicy}
 						onChange={(e) => onEvictionPolicyChange?.(e.target.value as EvictionPolicy)}
+						className="mobile-select"
 						style={{
 							width: "100%",
-							padding: "8px",
+							padding: "10px",
+							minHeight: "44px",
 							borderRadius: "6px",
 							border: "1px solid #334155",
 							background: "#0f172a",
 							color: "#e2e8f0",
-							fontSize: "12px",
+							fontSize: "13px",
 							cursor: "pointer",
 						}}
 					>
@@ -121,15 +124,17 @@ export function Controls({
 				</div>
 			)}
 
-			<div style={{ fontSize: "13px", fontWeight: 600, color: "#cbd5e1" }}>Prompt</div>
+			<div style={{ fontSize: "12px", fontWeight: 600, color: "#cbd5e1" }}>Prompt</div>
 			<textarea
 				value={promptText}
 				onChange={(event) => onPromptChange(event.target.value)}
 				rows={3}
 				placeholder={'Enter a prompt, e.g., "Hello, how are you today?"'}
+				className="mobile-textarea"
 				style={{
 					width: "100%",
 					padding: "10px",
+					minHeight: "80px",
 					borderRadius: "6px",
 					border: "1px solid #334155",
 					background: "#0f172a",
@@ -139,19 +144,21 @@ export function Controls({
 				}}
 			/>
 
-			<div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-				<span style={{ fontSize: "13px" }}>Mode:</span>
+			<div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
+				<span style={{ fontSize: "12px" }}>Mode:</span>
 				<button
 					type="button"
 					onClick={onModeToggle}
 					aria-pressed={mode === "decode"}
+					className="mobile-button"
 					style={{
-						padding: "8px 12px",
+						padding: "10px 16px",
+						minHeight: "44px",
 						borderRadius: "6px",
 						border: "1px solid #334155",
 						background: mode === "prefill" ? "#1e40af" : "#14532d",
 						color: "#f8fafc",
-						fontSize: "12px",
+						fontSize: "13px",
 						fontWeight: 600,
 						cursor: "pointer",
 					}}
@@ -164,14 +171,17 @@ export function Controls({
 				<button
 					type="button"
 					onClick={onPlayToggle}
+					className="mobile-button"
 					style={{
 						width: "96px",
 						padding: "10px 12px",
+						minHeight: "44px",
 						borderRadius: "6px",
 						border: "1px solid #334155",
 						background: isPlaying ? "#b45309" : "#0f766e",
 						color: "#f8fafc",
 						fontWeight: 700,
+						fontSize: "13px",
 						cursor: "pointer",
 					}}
 				>
@@ -181,14 +191,17 @@ export function Controls({
 					type="button"
 					onClick={onStep}
 					disabled={disableStep || isPlaying}
+					className="mobile-button"
 					style={{
 						flex: 1,
 						padding: "10px 12px",
+						minHeight: "44px",
 						borderRadius: "6px",
 						border: "1px solid #334155",
 						background: disableStep || isPlaying ? "#1e293b" : "#0f766e",
 						color: "#f8fafc",
 						fontWeight: 700,
+						fontSize: "13px",
 						cursor: disableStep || isPlaying ? "not-allowed" : "pointer",
 						opacity: disableStep || isPlaying ? 0.5 : 1,
 					}}
@@ -200,13 +213,16 @@ export function Controls({
 			<button
 				type="button"
 				onClick={onReset}
+				className="mobile-button"
 				style={{
 					padding: "10px 12px",
+					minHeight: "44px",
 					borderRadius: "6px",
 					border: "1px solid #334155",
 					background: "#b91c1c",
 					color: "#f8fafc",
 					fontWeight: 600,
+					fontSize: "13px",
 					cursor: "pointer",
 				}}
 			>

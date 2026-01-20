@@ -36,7 +36,7 @@ export function KVBlocks({ blocks, capacityPerBlock, entries }: KVBlocksProps) {
   });
 
   return (
-    <div style={{ display: "grid", gap: "12px" }}>
+    <div style={{ display: "grid", gap: "12px", minWidth: "280px" }}>
       {Array.from({ length: blocks }).map((_, blockIndex) => {
         const start = blockIndex * capacityPerBlock;
         const blockEntries = paddedEntries.slice(start, start + capacityPerBlock);
@@ -68,7 +68,15 @@ export function KVBlocks({ blocks, capacityPerBlock, entries }: KVBlocksProps) {
               </span>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: `repeat(${capacityPerBlock}, 1fr)`, gap: "6px" }}>
+            <div 
+              className="kv-block-grid"
+              style={{ 
+                display: "grid", 
+                gridTemplateColumns: `repeat(${capacityPerBlock}, 1fr)`, 
+                gap: "6px",
+                minWidth: "280px"
+              }}
+            >
               {blockEntries.map((entry, idx) => {
                 const color = STATUS_COLORS[entry.status];
                 const showPin = entry.status === "pinned";
