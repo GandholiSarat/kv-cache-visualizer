@@ -1,0 +1,242 @@
+"use client";
+
+// UI controls for prompt-driven KV steps.
+
+import { EvictionPolicy } from "../lib/constants";
+
+export type VisualizationMode = "prefill" | "decode";
+
+export interface ControlsProps {
+	promptText: string;
+	onPromptChange: (text: string) => void;
+	mode: VisualizationMode;
+	onModeToggle: () => void;
+	onStep: () => void;
+	onReset: () => void;
+	progressLabel: string;
+	disableStep: boolean;
+	isPlaying: boolean;
+	onPlayToggle: () => void;
+	speed: number;
+	onSpeedChange: (speed: number) => void;
+	evictionPolicy?: EvictionPolicy;
+	onEvictionPolicyChange?: (policy: EvictionPolicy) => void;
+	recentNWindow?: number;
+	onRecentNWindowChange?: (value: number) => void;
+}
+
+export function Controls({
+	promptText,
+	onPromptChange,
+	mode,
+	onModeToggle,
+	onStep,
+	onReset,
+	progressLabel,
+	disableStep,
+	isPlaying,
+	onPlayToggle,
+	speed,
+	onSpeedChange,
+	evictionPolicy,
+	onEvictionPolicyChange,
+	recentNWindow,
+	onRecentNWindowChange,
+}: ControlsProps) {
+	const speedLabel = speed === 0.25 ? "0.25×" : speed === 0.5 ? "0.5×" : speed === 1 ? "1×" : speed === 2 ? "2×" : "4×";
+
+	return (
+		<div
+			style={{
+				display: "grid",
+				gap: "14px",
+				padding: "14px",
+				border: "1px solid #1e293b",
+				borderRadius: "8px",
+				background: "#0b1220",
+				color: "#e2e8f0",
+			}}
+		>
+			{/* Eviction Policy Selector */}
+			{evictionPolicy && (
+				<div>
+					<div style={{ fontSize: "13px", fontWeight: 600, color: "#cbd5e1", marginBottom: "6px" }}>
+						Eviction Policy
+					</div>
+					<select
+						value={evictionPolicy}
+						onChange={(e) => onEvictionPolicyChange?.(e.target.value as EvictionPolicy)}
+						style={{
+							width: "100%",
+							padding: "8px",
+							borderRadius: "6px",
+							border: "1px solid #334155",
+							background: "#0f172a",
+							color: "#e2e8f0",
+							fontSize: "12px",
+							cursor: "pointer",
+						}}
+					>
+						<option value={EvictionPolicy.SlidingWindow}>Sliding Window</option>
+						<option value={EvictionPolicy.PinnedPrefix}>Pinned Prefix</option>
+						<option value={EvictionPolicy.RecentN}>Recent-N Tokens</option>
+					</select>
+					<div style={{ fontSize: "11px", color: "#94a3b8", marginTop: "4px", lineHeight: 1.4 }}>
+						{evictionPolicy === EvictionPolicy.SlidingWindow &&
+							"Evicts oldest tokens when cache is full (like Mistral, Llama 3.1)."}
+						{evictionPolicy === EvictionPolicy.PinnedPrefix &&
+							"Keeps first token pinned (system prompt), evicts older context."}
+						{evictionPolicy === EvictionPolicy.RecentN &&
+							"Maintains recent token window only (streaming, low-latency)."}
+					</div>
+
+					{/* Recent-N Window Control */}
+					{evictionPolicy === EvictionPolicy.RecentN && (
+						<div style={{ marginTop: "8px", paddingTop: "8px", borderTop: "1px solid #334155" }}>
+							<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+								<label style={{ fontSize: "12px", fontWeight: 600, color: "#cbd5e1" }}>
+									Attention Window (N):
+								</label>
+								<span style={{ fontSize: "12px", fontWeight: 700, color: "#10b981" }}>
+									{recentNWindow}
+								</span>
+							</div>
+							<input
+								type="range"
+								min="1"
+								max="32"
+								step="1"
+								value={recentNWindow}
+								onChange={(e) => onRecentNWindowChange?.(parseInt(e.target.value))}
+								style={{
+									width: "100%",
+									cursor: "pointer",
+								}}
+							/>
+							<div style={{ fontSize: "11px", color: "#94a3b8", marginTop: "4px" }}>
+								Only the last {recentNWindow} token{recentNWindow !== 1 ? "s" : ""} participate in attention during decode.
+							</div>
+						</div>
+					)}
+				</div>
+			)}
+
+			<div style={{ fontSize: "13px", fontWeight: 600, color: "#cbd5e1" }}>Prompt</div>
+			<textarea
+				value={promptText}
+				onChange={(event) => onPromptChange(event.target.value)}
+				rows={3}
+				placeholder={'Enter a prompt, e.g., "Hello, how are you today?"'}
+				style={{
+					width: "100%",
+					padding: "10px",
+					borderRadius: "6px",
+					border: "1px solid #334155",
+					background: "#0f172a",
+					color: "#e2e8f0",
+					resize: "vertical",
+					fontSize: "13px",
+				}}
+			/>
+
+			<div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+				<span style={{ fontSize: "13px" }}>Mode:</span>
+				<button
+					type="button"
+					onClick={onModeToggle}
+					aria-pressed={mode === "decode"}
+					style={{
+						padding: "8px 12px",
+						borderRadius: "6px",
+						border: "1px solid #334155",
+						background: mode === "prefill" ? "#1e40af" : "#14532d",
+						color: "#f8fafc",
+						fontSize: "12px",
+						fontWeight: 600,
+						cursor: "pointer",
+					}}
+				>
+					{mode === "prefill" ? "Prefill" : "Decode"}
+				</button>
+			</div>
+
+			<div style={{ display: "flex", gap: "10px" }}>
+				<button
+					type="button"
+					onClick={onPlayToggle}
+					style={{
+						width: "96px",
+						padding: "10px 12px",
+						borderRadius: "6px",
+						border: "1px solid #334155",
+						background: isPlaying ? "#b45309" : "#0f766e",
+						color: "#f8fafc",
+						fontWeight: 700,
+						cursor: "pointer",
+					}}
+				>
+					{isPlaying ? "Pause" : "Play"}
+				</button>
+				<button
+					type="button"
+					onClick={onStep}
+					disabled={disableStep || isPlaying}
+					style={{
+						flex: 1,
+						padding: "10px 12px",
+						borderRadius: "6px",
+						border: "1px solid #334155",
+						background: disableStep || isPlaying ? "#1e293b" : "#0f766e",
+						color: "#f8fafc",
+						fontWeight: 700,
+						cursor: disableStep || isPlaying ? "not-allowed" : "pointer",
+						opacity: disableStep || isPlaying ? 0.5 : 1,
+					}}
+				>
+					Step
+				</button>
+			</div>
+
+			<button
+				type="button"
+				onClick={onReset}
+				style={{
+					padding: "10px 12px",
+					borderRadius: "6px",
+					border: "1px solid #334155",
+					background: "#b91c1c",
+					color: "#f8fafc",
+					fontWeight: 600,
+					cursor: "pointer",
+				}}
+			>
+				Reset
+			</button>
+
+			<div style={{ borderTop: "1px solid #1e293b", paddingTop: "12px" }}>
+				<div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+					<span style={{ fontSize: "13px", color: "#cbd5e1" }}>Speed</span>
+					<span style={{ fontSize: "13px", fontWeight: 600, color: "#10b981" }}>{speedLabel}</span>
+				</div>
+				<input
+					type="range"
+					min="0"
+					max="4"
+					step="1"
+					value={speed === 0.25 ? 0 : speed === 0.5 ? 1 : speed === 1 ? 2 : speed === 2 ? 3 : 4}
+					onChange={(e) => {
+						const val = Number(e.target.value);
+						const speedMap = [0.25, 0.5, 1, 2, 4];
+						onSpeedChange(speedMap[val]);
+					}}
+					style={{
+						width: "100%",
+						cursor: "pointer",
+					}}
+				/>
+			</div>
+
+			<div style={{ fontSize: "12px", color: "#94a3b8" }}>{progressLabel}</div>
+		</div>
+	);
+}
