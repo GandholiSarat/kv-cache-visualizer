@@ -1,5 +1,7 @@
 "use client";
 
+// Single-prompt mode container: owns state + timers and calls the core stepper.
+
 import { useEffect, useRef, useState } from "react";
 import { Controls, type VisualizationMode } from "@/components/Controls";
 import { KVBlocks } from "@/components/KVBlocks";

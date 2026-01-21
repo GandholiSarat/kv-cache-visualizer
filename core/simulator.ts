@@ -1,3 +1,6 @@
+// Core stepper: pure, deterministic KV cache evolution per tick.
+// Prefill writes prompt KV; decode reads KV, generates one token, then writes.
+
 import { EvictionPolicy } from "@/lib/constants";
 import type { BlockConfig, KVEntry, MultiKVEntry, Phase, SimulationMode } from "./types";
 import {

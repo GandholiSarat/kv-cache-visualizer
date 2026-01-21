@@ -1,3 +1,6 @@
+// Policy dispatch and visualization semantics.
+// Note: Recent-N limits attention reads, not storage. Older KV remains cached.
+
 import { EvictionPolicy } from "@/lib/constants";
 import type { EvictionConfig, KVEntry, MultiKVEntry, KVEntryStatus, MultiKVEntryStatus } from "./types";
 import * as SlidingWindowPolicy from "@/eviction/SlidingWindowPolicy";

@@ -1,3 +1,6 @@
+// Allocation helpers for block/page based KV cache layouts.
+// These utilities are UI-agnostic and operate on plain entry arrays.
+
 import type { BlockConfig, KVEntryStatus, MultiKVEntry, KVEntry, MultiKVEntryStatus } from "./types";
 
 export function isFreeStatus(status: KVEntryStatus | MultiKVEntryStatus): boolean {
@@ -152,6 +155,7 @@ export function evictFullBlock<T extends { status: KVEntryStatus | MultiKVEntryS
 	config: BlockConfig,
 	skipBlockIndex?: number | null
 ): boolean {
+	// Evict the oldest *full* block by write order (paged KV behavior).
 	const candidateBlocks: number[] = [];
 	for (let b = 0; b < config.blockCount; b++) {
 		if (typeof skipBlockIndex === "number" && b === skipBlockIndex) continue;

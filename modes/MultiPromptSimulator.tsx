@@ -1,5 +1,7 @@
 "use client";
 
+// Multi-prompt (continuous batching) container: owns state + timers and calls the core stepper.
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MultiPromptVisualizer } from "@/components/MultiPromptVisualizer";
 import { EvictionPolicy, DEFAULT_EVICTION_POLICY, DEFAULT_RECENT_N_WINDOW } from "@/lib/constants";

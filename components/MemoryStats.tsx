@@ -1,6 +1,7 @@
 "use client";
 
 // Conceptual memory usage summary for block-based KV cache.
+// Recent-N distinguishes attention reads vs retained (inactive) KV.
 
 export interface MemoryStatsProps {
 	totalSlots: number;
