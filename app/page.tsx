@@ -6,6 +6,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Controls, type VisualizationMode } from "../components/Controls";
 import { KVBlocks, type KVEntry, type KVEntryStatus } from "../components/KVBlocks";
 import { MemoryStats } from "../components/MemoryStats";
+import { MultiPromptVisualizer } from "@/components/MultiPromptVisualizer";
+import SinglePromptExplanation from "@/components/SinglePromptExplanation";
 import { EvictionPolicy, DEFAULT_EVICTION_POLICY, DEFAULT_RECENT_N_WINDOW } from "../lib/constants";
 import { renderTokensWithSpacing, isPunctuationToken } from "../lib/tokenRendering";
 
@@ -14,6 +16,8 @@ const BLOCK_CAPACITY = 8;
 const TOTAL_SLOTS = BLOCK_COUNT * BLOCK_CAPACITY;
 
 const DEFAULT_PROMPT = "Hello, how are you today?";
+
+type InferencePromptMode = "single" | "multi";
 
 function tokenizePrompt(prompt: string): string[] {
 	const tokens: string[] = [];
@@ -52,6 +56,99 @@ function tokenizePrompt(prompt: string): string[] {
 }
 
 export default function Home() {
+	const [promptMode, setPromptMode] = useState<InferencePromptMode>("single");
+
+	return (
+		<main
+			className="responsive-main main-container"
+			style={{
+				minHeight: "100vh",
+				padding: "16px",
+				background: "#020617",
+				color: "#e2e8f0",
+				fontFamily: "system-ui, sans-serif",
+				display: "flex",
+				flexDirection: "column",
+				maxWidth: "100%",
+				overflowX: "hidden",
+			}}
+		>
+		<section className="header-section responsive-header" style={{ display: "grid", gap: "6px", marginBottom: "10px" }}>
+				<div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: "12px", flexWrap: "wrap" }}>
+					<div style={{ display: "grid", gap: "4px", flex: "1 1 auto", minWidth: "260px" }}>
+						<h1 className="main-title" style={{ fontSize: "35px", fontWeight: 700, margin: 5 }}>KV Cache Visualizer</h1>
+						<p className="subtitle" style={{ margin: 5, color: "#94a3b8", fontSize: "15px" }}>
+							Real-time inference simulation: prefill → decode → streaming → eviction
+						</p>
+					</div>
+
+					<div
+						style={{
+							display: "grid",
+							gap: "6px",
+							padding: "10px",
+							border: "1px solid #1e293b",
+							borderRadius: "8px",
+							background: "#0b1220",
+							minWidth: "260px",
+						}}
+					>
+						<div style={{ fontSize: "12px", fontWeight: 700, color: "#cbd5e1" }}>Mode</div>
+						<div style={{ display: "flex", gap: "8px" }}>
+							<button
+								type="button"
+								onClick={() => setPromptMode("single")}
+								aria-pressed={promptMode === "single"}
+								className="mobile-button"
+								style={{
+									flex: 1,
+									padding: "10px 12px",
+									minHeight: "44px",
+									borderRadius: "6px",
+									border: "1px solid #334155",
+									background: promptMode === "single" ? "#1e40af" : "#0f172a",
+									color: "#f8fafc",
+									fontSize: "13px",
+									fontWeight: 700,
+									cursor: "pointer",
+								}}
+							>
+								Single Prompt
+							</button>
+							<button
+								type="button"
+								onClick={() => setPromptMode("multi")}
+								aria-pressed={promptMode === "multi"}
+								className="mobile-button"
+								style={{
+									flex: 1,
+									padding: "10px 12px",
+									minHeight: "44px",
+									borderRadius: "6px",
+									border: "1px solid #334155",
+									background: promptMode === "multi" ? "#14532d" : "#0f172a",
+									color: "#f8fafc",
+									fontSize: "13px",
+									fontWeight: 700,
+									cursor: "pointer",
+								}}
+							>
+								Multi Prompt (Continuous Batching)
+							</button>
+						</div>
+						{/* <div style={{ fontSize: "11px", color: "#94a3b8", lineHeight: 1.4 }}>
+							Single matches the original behavior. Multi visualizes continuous batching.
+						</div> */}
+					</div>
+				</div>
+			</section>
+
+			{promptMode === "single" ? <SinglePromptVisualizer /> : <MultiPromptVisualizer />}
+		</main>
+	);
+}
+
+function SinglePromptVisualizer() {
 	const [promptText, setPromptText] = useState(DEFAULT_PROMPT);
 	const [mode, setMode] = useState<VisualizationMode>("prefill");
 	const [currentIndex, setCurrentIndex] = useState(0);
@@ -64,12 +161,11 @@ export default function Home() {
 	const [phase, setPhase] = useState<"prefill" | "decode-read" | "decode-write">("prefill");
 	const [evictionPolicy, setEvictionPolicy] = useState<EvictionPolicy>(DEFAULT_EVICTION_POLICY);
 	const [recentNWindow, setRecentNWindow] = useState(DEFAULT_RECENT_N_WINDOW);
-	const [showPolicyDetails, setShowPolicyDetails] = useState(false);
 	const timerRef = useRef<number | null>(null);
 	const decodeCounterRef = useRef(0);
+	const writeClockRef = useRef(0);
 
 	const tokens = useMemo(() => tokenizePrompt(promptText), [promptText]);
-	const isCapacityFull = entries.filter((e) => e.status !== "empty").length >= TOTAL_SLOTS;
 	const isPromptConsumed = currentIndex >= tokens.length;
 	// Never disable step in this evolved version
 	const disableStep = false;
@@ -77,7 +173,7 @@ export default function Home() {
 	const newCount = entries.filter((e) => e.status === "new").length;
 	const reusedCount = entries.filter((e) => e.status === "reused").length;
 	const pinnedCount = entries.filter((e) => e.status === "pinned").length;
-	const emptyCount = TOTAL_SLOTS - newCount - reusedCount - pinnedCount;
+	const emptyCount = entries.filter((e) => e.status === "empty" || e.status === "evicted").length;
 
 	function reset() {
 		setIsPlaying(false);
@@ -91,66 +187,104 @@ export default function Home() {
 		setInferenceTick(0);
 		setEntries(Array.from({ length: TOTAL_SLOTS }, () => ({ token: "", status: "empty" as KVEntryStatus, slotIndex: 0 })));
 		decodeCounterRef.current = 0;
+		writeClockRef.current = 0;
 	}
 
-	/**
-	 * Apply eviction logic based on selected policy.
-	 * Returns a new entries array with one slot freed (or marked as evicted).
-	 */
-	function applyEvictionPolicy(next: KVEntry[]): KVEntry[] {
-		const filledCount = next.filter((e) => e.status !== "empty" && e.status !== "evicted").length;
-		if (filledCount < TOTAL_SLOTS) {
-			return next; // No eviction needed
+	function isFreeStatus(status: KVEntryStatus): boolean {
+		return status === "empty" || status === "evicted";
+	}
+
+	function blockSlice(blockIndex: number): { start: number; end: number } {
+		const start = blockIndex * BLOCK_CAPACITY;
+		return { start, end: start + BLOCK_CAPACITY };
+	}
+
+	function blockOccupiedCount(next: KVEntry[], blockIndex: number): number {
+		const { start, end } = blockSlice(blockIndex);
+		let occupied = 0;
+		for (let i = start; i < end; i++) {
+			if (!isFreeStatus(next[i].status)) occupied++;
 		}
+		return occupied;
+	}
 
-		switch (evictionPolicy) {
-			case EvictionPolicy.SlidingWindow:
-				// Evict oldest (shift all left, clear last slot)
-				for (let i = 0; i < TOTAL_SLOTS - 1; i++) {
-					next[i] = { ...next[i + 1] };
-				}
-				next[TOTAL_SLOTS - 1] = { token: "", status: "empty", slotIndex: TOTAL_SLOTS - 1 };
-				return next;
+	function blockHasAnyOccupied(next: KVEntry[], blockIndex: number): boolean {
+		return blockOccupiedCount(next, blockIndex) > 0;
+	}
 
-			case EvictionPolicy.PinnedPrefix:
-				// First block is pinned to mimic a persistent system prompt.
-				const firstPinnedIdx = 0; // First slot is pinned
-				let evictIdx = firstPinnedIdx + 1;
-				while (evictIdx < TOTAL_SLOTS && next[evictIdx].status === "empty") {
-					evictIdx++;
-				}
-				if (evictIdx < TOTAL_SLOTS) {
-					// Mark as evicted, then shift remaining entries
-					for (let i = evictIdx; i < TOTAL_SLOTS - 1; i++) {
-						next[i] = { ...next[i + 1] };
-					}
-					next[TOTAL_SLOTS - 1] = { token: "", status: "empty", slotIndex: TOTAL_SLOTS - 1 };
-				}
-				return next;
+	function findFirstFreeInBlock(next: KVEntry[], blockIndex: number): number {
+		const { start, end } = blockSlice(blockIndex);
+		for (let i = start; i < end; i++) {
+			if (isFreeStatus(next[i].status)) return i;
+		}
+		return -1;
+	}
 
-			case EvictionPolicy.RecentN: {
-				// Keep only the most recent DEFAULT_RECENT_N_WINDOW tokens
-				// Evict the oldest token outside this window (streaming-style context limit)
-				let evictIdx = 0;
-				for (let i = 0; i < TOTAL_SLOTS; i++) {
-					if (next[i].status !== "empty" && next[i].status !== "evicted") {
-						evictIdx = i;
-						break;
-					}
-				}
-				if (evictIdx < TOTAL_SLOTS) {
-					for (let i = evictIdx; i < TOTAL_SLOTS - 1; i++) {
-						next[i] = { ...next[i + 1] };
-					}
-					next[TOTAL_SLOTS - 1] = { token: "", status: "empty", slotIndex: TOTAL_SLOTS - 1 };
-				}
-				return next;
+	function isBlockCompletelyFree(next: KVEntry[], blockIndex: number): boolean {
+		return blockOccupiedCount(next, blockIndex) === 0;
+	}
+
+	function isBlockFull(next: KVEntry[], blockIndex: number): boolean {
+		return blockOccupiedCount(next, blockIndex) >= BLOCK_CAPACITY;
+	}
+
+	function getBlockLastWriteId(next: KVEntry[], blockIndex: number): number {
+		const { start, end } = blockSlice(blockIndex);
+		let maxId = -1;
+		for (let i = start; i < end; i++) {
+			const anyEntry = next[i] as KVEntry & { writeId?: number };
+			if (!isFreeStatus(anyEntry.status) && typeof anyEntry.writeId === "number") {
+				maxId = Math.max(maxId, anyEntry.writeId);
 			}
-
-			default:
-				return next;
 		}
+		return maxId;
 	}
+
+	function evictFullBlock(next: KVEntry[]): boolean {
+		const candidateBlocks: number[] = [];
+		for (let b = 0; b < BLOCK_COUNT; b++) {
+			if (evictionPolicy === EvictionPolicy.PinnedPrefix && b === 0) continue;
+			if (isBlockFull(next, b)) candidateBlocks.push(b);
+		}
+		if (candidateBlocks.length === 0) return false;
+
+		// Evict the oldest full block (by last write id).
+		let victim = candidateBlocks[0];
+		let victimLast = getBlockLastWriteId(next, victim);
+		for (const b of candidateBlocks.slice(1)) {
+			const last = getBlockLastWriteId(next, b);
+			if (victimLast < 0 || (last >= 0 && last < victimLast)) {
+				victim = b;
+				victimLast = last;
+			}
+		}
+
+		const { start, end } = blockSlice(victim);
+		for (let i = start; i < end; i++) {
+			if (!isFreeStatus(next[i].status)) {
+				next[i] = { ...next[i], status: "evicted" as KVEntryStatus };
+			}
+		}
+		return true;
+	}
+
+	function findWriteSlot(next: KVEntry[]): number {
+		// 1) Fill existing empty slots inside already-used (active) blocks first.
+		for (let b = 0; b < BLOCK_COUNT; b++) {
+			if (!blockHasAnyOccupied(next, b)) continue;
+			const slot = findFirstFreeInBlock(next, b);
+			if (slot >= 0) return slot;
+		}
+		// 2) Allocate a new block (first slot in a completely free block).
+		for (let b = 0; b < BLOCK_COUNT; b++) {
+			if (!isBlockCompletelyFree(next, b)) continue;
+			return b * BLOCK_CAPACITY;
+		}
+		// 3) No space: caller must evict a full block.
+		return -1;
+	}
+
+	// Note: eviction is now block-granular and never compacts/re-packs slots.
 
 	/**
 	 * Apply policy-specific status updates to reflect visualization logic.
@@ -250,24 +384,23 @@ export default function Home() {
 				tokenLabel = "<gen>";
 			}
 
-			// Check if we need to evict
-			const filledCount = next.filter((e) => e.status !== "empty").length;
-			if (filledCount >= TOTAL_SLOTS) {
-				// Apply policy-specific eviction
-				const evicted = applyEvictionPolicy(next);
-				for (let i = 0; i < TOTAL_SLOTS; i++) {
-					next[i] = evicted[i];
-				}
+			// Find a write target: fill empties in active blocks first, then allocate a new block.
+			let targetSlot = findWriteSlot(next);
+			if (targetSlot < 0) {
+				// No free slots anywhere -> evict a FULL block (never partial).
+				evictFullBlock(next);
+				targetSlot = findWriteSlot(next);
 			}
-
-			// Find first empty slot and append new token
-			const emptyIndex = next.findIndex((e) => e.status === "empty");
-			if (emptyIndex >= 0) {
-				next[emptyIndex] = {
+			if (targetSlot >= 0) {
+				writeClockRef.current += 1;
+				const anyPrev = next[targetSlot] as KVEntry & { writeId?: number };
+				next[targetSlot] = {
+					...anyPrev,
 					token: tokenLabel ?? `Token ${currentIndex + 1}`,
 					status: "new",
-					slotIndex: emptyIndex,
-				};
+					slotIndex: targetSlot,
+					writeId: writeClockRef.current,
+				} as KVEntry;
 			}
 
 			// Apply policy-specific visual updates
@@ -321,49 +454,31 @@ export default function Home() {
 		"Decode: Write new KV";
 
 	return (
-		<main
-			className="responsive-main"
-			style={{
-				minHeight: "100vh",
-				padding: "16px",
-				background: "#020617",
-				color: "#e2e8f0",
-				fontFamily: "system-ui, sans-serif",
-				display: "flex",
-				flexDirection: "column",
-			}}
-		>
-			{/* Header */}
-			<section className="header-section" style={{ display: "grid", gap: "8px", marginBottom: "16px" }}>
-				<h1 className="main-title" style={{ fontSize: "24px", fontWeight: 700, margin: 0 }}>KV Cache Visualizer</h1>
-				<p className="subtitle" style={{ margin: 0, color: "#94a3b8", fontSize: "13px" }}>
-					Real-time inference simulation: prefill → decode → streaming → eviction
-				</p>
-				<div className="status-badges" style={{ display: "flex", gap: "12px", marginTop: "8px", flexWrap: "wrap" }}>
-					<div className="status-badge" style={{ fontSize: "12px", color: "#10b981", fontWeight: 600 }}>
+		<>
+			<section className="header-section" style={{ display: "grid", gap: "4px", marginBottom: "12px" }}>
+				<div className="status-badges" style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+					<div className="status-badge" style={{ fontSize: "14px", color: "#10b981", fontWeight: 600,margin: 5 }}>
 						Inference Tick: {inferenceTick}
 					</div>
-					<div className="status-badge" style={{ fontSize: "12px", color: "#3b82f6", fontWeight: 600 }}>
+					<div className="status-badge" style={{ fontSize: "14px", color: "#3b82f6", fontWeight: 600, margin: 5 }}>
 						Phase: {phaseLabel}
 					</div>
 				</div>
 			</section>
 
-			{/* Main layout */}
 			<section
 				className="main-grid"
 				style={{
 					display: "grid",
-					gridTemplateColumns: "1fr",
 					gap: "16px",
 					alignItems: "start",
-					maxWidth: "1400px",
+					maxWidth: "1600px",
 					margin: "0 auto",
 					width: "100%",
 				}}
 			>
 				{/* Left: Controls */}
-				<div style={{ display: "grid", gap: "16px" }}>
+				<div className="controls-left-column" style={{ display: "grid", gap: "16px" }}>
 					<Controls
 						promptText={promptText}
 						onPromptChange={(text) => {
@@ -391,18 +506,11 @@ export default function Home() {
 						recentNWindow={recentNWindow}
 						onRecentNWindowChange={setRecentNWindow}
 					/>
-					<MemoryStats
-						totalSlots={TOTAL_SLOTS}
-						newCount={newCount}
-						reusedCount={reusedCount}
-						pinnedCount={pinnedCount}
-						emptyCount={emptyCount}
-					/>
 				</div>
 
 				{/* Center: Block visualization */}
 				<div
-					className="kv-visualization-container"
+					className="kv-visualization-container blocks-center-column mobile-panel"
 					style={{
 						border: "1px solid #1e293b",
 						borderRadius: "8px",
@@ -411,86 +519,89 @@ export default function Home() {
 					}}
 				>
 					<div className="kv-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", flexWrap: "wrap", gap: "8px" }}>
-						<div style={{ fontWeight: 700, color: "#e2e8f0", fontSize: "14px" }}>KV Cache Blocks</div>
-						<div style={{ fontSize: "11px", color: "#94a3b8" }}>
-							{mode === "prefill" ? "Filling cache" : "Streaming (sliding window)"}
+					<div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+						<div style={{ fontWeight: 700, color: "#e2e8f0", fontSize: "14px" }}>GPU: KV Cache Blocks</div>
+						<div style={{ fontSize: "10px", color: "#64748b", background: "#1e293b", padding: "2px 6px", borderRadius: "3px" }}>Paged KV Storage</div>
+					</div>
+					<div style={{ fontSize: "11px", color: "#94a3b8" }}>
+						{mode === "prefill" ? "Prefill: process all tokens sequentially" : "Decode: read KV → generate token → write new KV"}
+					</div>
+				</div>
+				<div className="kv-blocks-scroll" style={{ overflowX: "auto", overflowY: "visible" }}>
+					<KVBlocks blocks={BLOCK_COUNT} capacityPerBlock={BLOCK_CAPACITY} entries={entries} />
+				</div>
+			</div>
+
+			{/* Right Column: Legend and Memory Stats (stacked) */}
+			<div className="right-column" style={{ display: "grid", gap: "16px", gridColumn: "3 / 4", gridRow: "1 / 3" }}>
+				{/* Legend - Top */}
+				<div
+					className="mobile-panel"
+					style={{
+						padding: "16px",
+						border: "1px solid #1e293b",
+						borderRadius: "8px",
+						background: "#0b1220",
+					}}
+				>
+					<div style={{ fontSize: "13px", fontWeight: 700, color: "#e2e8f0", marginBottom: "8px" }}>Legend</div>
+					<div style={{ display: "grid", gap: "8px", fontSize: "12px" }}>
+						<ColorKey color="#2563eb" label="New KV (written this step)" />
+						<ColorKey color="#16a34a" label="Reused KV (decode reads)" />
+						<ColorKey color="#8b5cf6" label="Pinned KV (locked in prefix)" />
+						<ColorKey color="#64748b" label="Evicted KV (fading out)" />
+						<ColorKey color="#1e293b" label="Empty slot" />
+						<div style={{ color: "#94a3b8", fontSize: "11px", marginTop: "4px", paddingTop: "8px", borderTop: "0px solid #334155" }}>
+							<strong style={{ color: "#cbd5e1" }}>gen</strong> = generated decode token (simulated, not real inference)
 						</div>
 					</div>
-					<div className="kv-blocks-scroll" style={{ overflowX: "auto", overflowY: "visible" }}>
-						<KVBlocks blocks={BLOCK_COUNT} capacityPerBlock={BLOCK_CAPACITY} entries={entries} />
+					<div style={{ marginTop: "12px", paddingTop: "10px", borderTop: "1px solid #1e293b", color: "#94a3b8", fontSize: "12px", lineHeight: "1.6" }}>
+						<strong>Prefill:</strong> Process all prompt tokens sequentially.
+						<br />
+						<strong>Decode:</strong> Read cached KV → generate next token → write new KV.
+						<br />
+						<strong>Policy Impact:</strong>
+						<br />
+						• <strong>Sliding Window:</strong> Evicts oldest on overflow
+						<br />
+						• <strong>Pinned Prefix:</strong> Locks first block (system prompt)
+						<br />
+						• <strong>Recent-N:</strong> Keeps only recent tokens
 					</div>
 				</div>
 
-				{/* Right: Legend and explanation */}
-				<div className="legend-section" style={{ display: "grid", gap: "12px" }}>
-					<div
-						style={{
-							padding: "12px",
-							border: "1px solid #1e293b",
-							borderRadius: "8px",
-							background: "#0b1220",
-						}}
-					>
-						<div style={{ fontSize: "13px", fontWeight: 700, color: "#e2e8f0", marginBottom: "8px" }}>Legend</div>
-						<div style={{ display: "grid", gap: "8px", fontSize: "12px" }}>
-							<ColorKey color="#2563eb" label="New KV (written this step)" />
-							<ColorKey color="#16a34a" label="Reused KV (decode reads)" />
-							<ColorKey color="#8b5cf6" label="Pinned KV (locked in prefix)" />
-							<ColorKey color="#64748b" label="Evicted KV (fading out)" />
-							<ColorKey color="#1e293b" label="Empty slot" />
-							<div style={{ color: "#94a3b8", fontSize: "11px", marginTop: "4px", paddingTop: "8px", borderTop: "0px solid #334155" }}>
-								<strong style={{ color: "#cbd5e1" }}>gen</strong> = generated decode token (simulated, not real inference)
-							</div>
-						</div>
-						<div style={{ marginTop: "12px", paddingTop: "10px", borderTop: "1px solid #1e293b", color: "#94a3b8", fontSize: "12px", lineHeight: "1.6" }}>
-							<strong>Prefill:</strong> Process all prompt tokens sequentially.
-							<br />
-							<strong>Decode:</strong> Read cached KV → generate next token → write new KV.
-							<br />
-							<strong>Policy Impact:</strong>
-							<br />
-							• <strong>Sliding Window:</strong> Evicts oldest on overflow
-							<br />
-							• <strong>Pinned Prefix:</strong> Locks first block (system prompt)
-							<br />
-							• <strong>Recent-N:</strong> Keeps only recent tokens
-						</div>
-					</div>
-					<div
-						style={{
-							padding: "12px",
-							border: "1px solid #334155",
-							borderRadius: "8px",
-							background: "#0b1220",
-							fontSize: "12px",
-							color: "#e2e8f0",
-							lineHeight: "1.7",
-							cursor: "pointer",
-							userSelect: "none",
-						}}
-						onClick={() => setShowPolicyDetails(!showPolicyDetails)}
-					>
-						<div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-							<strong>How Policies Map to Real LLM Serving</strong>
-							<span style={{ fontSize: "14px", color: "#94a3b8", transition: "transform 0.2s ease", transform: showPolicyDetails ? "rotate(180deg)" : "rotate(0deg)" }}>
-								▼
-							</span>
-						</div>
-						{showPolicyDetails && (
-							<ul style={{ margin: "12px 0 0 14px", padding: 0, color: "#cbd5e1" }}>
-								<li><strong>Inference Clock:</strong> Each tick = one forward pass through the model.</li>
-								<li><strong>Prefill Phase:</strong> Processes all prompt tokens in parallel; allocates KV cache.</li>
-								<li><strong>Decode Phase:</strong> Autoregressive: reads cached KV, computes next token, appends new KV.</li>
-								<li><strong>Sliding Window:</strong> Evicts oldest tokens when cache overflows (Mistral, Llama 3.1 long-context).</li>
-								<li><strong>Pinned Prefix:</strong> Locks system prompt in cache; useful for chat models and multi-turn context.</li>
-								<li><strong>Recent-N Tokens:</strong> Maintains recent history only; ideal for streaming/low-latency inference.</li>
-								<li><strong>Context Windows:</strong> Each policy manages the trade-off between memory usage and context recall.</li>
-							</ul>
-						)}
-					</div>
-				</div>
-			</section>
-		</main>
+				{/* Memory Stats - Below Legend */}
+				<div
+					className="mobile-panel"
+					style={{
+						padding: "16px",
+						border: "1px solid #1e293b",
+						borderRadius: "8px",
+						background: "#0b1020",
+				}}
+			>
+				<MemoryStats
+					totalSlots={TOTAL_SLOTS}
+					newCount={newCount}
+					reusedCount={reusedCount}
+					pinnedCount={pinnedCount}
+					emptyCount={emptyCount}
+				/>
+			</div>
+		</div>
+		</section>
+
+		{/* Explanation Section - Below the simulation */}
+		<section
+			style={{
+				maxWidth: "1600px",
+				margin: "24px auto 0 auto",
+				width: "100%",
+			}}
+		>
+			<SinglePromptExplanation />
+		</section>
+		</>
 	);
 }
 

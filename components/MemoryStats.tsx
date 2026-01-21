@@ -19,17 +19,13 @@ export function MemoryStats({ totalSlots, newCount, reusedCount, pinnedCount, em
 		<div
 			className="memory-stats"
 			style={{
-				padding: "12px",
-				border: "1px solid #1e293b",
-				borderRadius: "8px",
-				background: "#0b1220",
 				color: "#e2e8f0",
 			}}
 		>
-			<div style={{ fontSize: "12px", fontWeight: 600, color: "#94a3b8", marginBottom: "8px" }}>
+			<div style={{ fontSize: "13px", fontWeight: 700, color: "#e2e8f0", marginBottom: "10px" }}>
 				KV Cache Blocks
 			</div>
-			<div style={{ fontSize: "24px", fontWeight: 700, color: "#e2e8f0", marginBottom: "4px" }}>
+			<div style={{ fontSize: "24px", fontWeight: 700, color: "#e2e8f0", marginBottom: "8px" }}>
 				{used}/{totalSlots} slots used
 			</div>
 
@@ -52,7 +48,7 @@ export function MemoryStats({ totalSlots, newCount, reusedCount, pinnedCount, em
 				/>
 			</div>
 
-			<div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px", marginTop: "10px" }}>
+			<div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px", marginTop: "12px" }}>
 				<StatChip label="New" value={newCount} color="#2563eb" />
 				<StatChip label="Reused" value={reusedCount} color="#16a34a" />
 				{pinnedCount > 0 && <StatChip label="Pinned" value={pinnedCount} color="#8b5cf6" />}

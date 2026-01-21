@@ -10,69 +10,199 @@ body {
   background: #020617;
   color: #e2e8f0;
   font-family: system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
 }
 
 /* Responsive styles for mobile devices */
 
-/* Mobile-first: stack all sections vertically */
-.main-grid {
-  display: grid !important;
-  grid-template-columns: 1fr !important;
-  gap: 16px !important;
+/* Default: Desktop 3-column layout */
+.multi-prompt-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 300px) 1fr minmax(350px, 400px);
+  gap: 16px;
+  align-items: start;
 }
 
-/* Tablet and up: 2-column layout */
-@media (min-width: 768px) {
+.controls-column {
+  grid-column: 1 / 2;
+  grid-row: 1 / 3;
+}
+
+.gpu-column {
+  grid-column: 2 / 3;
+  grid-row: 1 / 3;
+}
+
+.right-column {
+  grid-column: 3 / 4;
+  grid-row: 1 / 3;
+}
+
+/* Mobile: stack all sections vertically */
+@media (max-width: 768px) {
+  .multi-prompt-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  /* All child sections full width on mobile */
+  .multi-prompt-grid > div {
+    grid-column: 1 / -1 !important;
+    grid-row: auto !important;
+  }
+}
+
+/* Single Prompt Grid - Desktop 3-column layout (same as multi-prompt) */
+.main-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 300px) 1fr minmax(300px, 350px);
+  gap: 20px;
+  align-items: start;
+}
+
+.controls-left-column {
+  grid-column: 1 / 2;
+  grid-row: 1 / 3;
+}
+
+.blocks-center-column {
+  grid-column: 2 / 3;
+  grid-row: 1 / 3;
+}
+
+.legend-right-column {
+  grid-column: 3 / 4;
+  grid-row: 1 / 3;
+}
+
+/* Mobile: Single column for single prompt */
+@media (max-width: 768px) {
   .main-grid {
-    grid-template-columns: 300px 1fr !important;
-    gap: 20px !important;
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
   }
   
-  .legend-section {
-    grid-column: 1 / -1;
+  .controls-left-column,
+  .blocks-center-column,
+  .legend-right-column {
+    grid-column: 1 / -1 !important;
+    grid-row: auto !important;
+  }
+}
+
+/* Mobile collapsible sections */
+.mobile-collapsible {
+  display: block;
+}
+
+.mobile-collapsible summary {
+  cursor: pointer;
+  user-select: none;
+  padding: 12px;
+  background: #1e293b;
+  border-radius: 6px;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  list-style: none;
+}
+
+.mobile-collapsible summary::-webkit-details-marker {
+  display: none;
+}
+
+.mobile-collapsible summary::after {
+  content: "▼";
+  font-size: 12px;
+  transition: transform 0.2s;
+}
+
+.mobile-collapsible[open] summary::after {
+  transform: rotate(180deg);
+}
+
+.mobile-collapsible-content {
+  padding: 12px;
+  padding-top: 8px;
+}
+
+/* On desktop, remove collapsible styling */
+@media (min-width: 769px) {
+  .mobile-collapsible {
+    display: block;
   }
   
-  .responsive-main {
-    padding: 20px !important;
+  .mobile-collapsible summary {
+    display: none;
   }
   
-  .header-section {
-    margin-bottom: 20px !important;
+  .mobile-collapsible[open] .mobile-collapsible-content,
+  .mobile-collapsible .mobile-collapsible-content {
+    display: block;
+    padding: 0;
+  }
+}
+
+/* Touch-friendly controls and spacing */
+@media (max-width: 768px) {
+  button, select, textarea {
+    min-height: 44px;
+    font-size: 16px !important;
+    padding: 10px 16px !important;
+  }
+  
+  input[type="range"] {
+    min-height: 32px;
+    width: 100%;
+  }
+  
+  /* Full-width mobile buttons */
+  .mobile-full-width {
+    width: 100% !important;
+  }
+  
+  /* Compact panels on mobile */
+  .mobile-panel {
+    padding: 12px !important;
+  }
+  
+  /* Smaller text in KV slots on mobile */
+  .kv-slot-text {
+    font-size: 9px !important;
+  }
+  
+  /* Stack KV blocks vertically on mobile */
+  .kv-blocks-mobile-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  /* Each block scrolls horizontally */
+  .kv-block-row {
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 8px;
+  }
+  
+  /* Minimum block width for scrolling */
+  .kv-block-inner {
+    min-width: 320px;
+  }
+  
+  /* Responsive header */
+  .responsive-header {
+    padding: 12px !important;
   }
   
   .main-title {
-    font-size: 26px !important;
+    font-size: clamp(28px, 6.5vw, 35px) !important;
   }
   
   .subtitle {
-    font-size: 14px !important;
-  }
-  
-  .status-badge {
-    font-size: 13px !important;
-  }
-}
-
-/* Desktop: 3-column layout (original design) */
-@media (min-width: 1024px) {
-  .main-grid {
-    grid-template-columns: 300px 1fr 260px !important;
-  }
-  
-  .legend-section {
-    grid-column: auto;
-  }
-  
-  .responsive-main {
-    padding: 24px !important;
-  }
-  
-  .header-section {
-    margin-bottom: 24px !important;
-  }
-  
-  .main-title {
-    font-size: 28px !important;
+    font-size: clamp(14px, 4.5vw, 16px) !important;
   }
 }
 
@@ -81,7 +211,6 @@ body {
   overflow-x: auto;
   overflow-y: visible;
   -webkit-overflow-scrolling: touch;
-  /* Add padding for better mobile scrolling */
   padding-bottom: 8px;
 }
 
@@ -103,36 +232,70 @@ body {
   background: #475569;
 }
 
-/* Touch-friendly minimum sizes on mobile */
-@media (max-width: 767px) {
-  button, input[type="range"], select, textarea {
-    min-height: 44px;
-    font-size: 16px !important;
+/* Ensure no page-wide horizontal scroll */
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+.main-container {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Responsive padding */
+.responsive-main {
+  padding: 12px;
+}
+
+@media (min-width: 769px) {
+  .responsive-main {
+    padding: 20px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-main {
+    padding: 24px;
+  }
+}
+
+/* Mobile button improvements */
+@media (max-width: 768px) {
+  button {
+    cursor: pointer;
+    -webkit-tap-highlight-color: rgba(255, 255, 255, 0.1);
   }
   
-  input[type="range"] {
-    min-height: 32px;
+  /* Mode selector full width on small screens */
+  .header-section > div {
+    flex-direction: column;
+    align-items: stretch !important;
   }
   
-  /* Better mobile text sizes */
-  .kv-header {
-    font-size: 13px !important;
+  .header-section > div > div:last-child {
+    width: 100%;
+    min-width: 100%;
+  }
+}
+
+/* Ensure inputs don't zoom on mobile Safari */
+input[type="text"],
+input[type="number"],
+textarea,
+select {
+  font-size: 16px;
+}
+
+/* Improve text readability on mobile */
+@media (max-width: 768px) {
+  .kv-slot {
+    font-size: 10px !important;
+    padding: 4px !important;
   }
   
-  /* Ensure KV blocks are scrollable with momentum */
-  .kv-block-grid {
-    min-width: 300px;
-  }
-  
-  /* Improve padding on small screens */
-  .controls-panel,
-  .kv-visualization-container,
-  .legend-section > div {
-    padding: 10px !important;
-  }
-  
-  /* Make legend more compact on mobile */
-  .legend-section {
-    font-size: 11px !important;
+  /* Make prompt text areas taller for easier mobile editing */
+  textarea {
+    min-height: 60px !important;
   }
 }

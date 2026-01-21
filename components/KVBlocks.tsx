@@ -64,7 +64,7 @@ export function KVBlocks({ blocks, capacityPerBlock, entries }: KVBlocksProps) {
             >
               <span>Block {blockIndex + 1}</span>
               <span style={{ color: "#94a3b8", fontSize: "12px" }}>
-                Capacity {blockEntries.filter((e) => e.status !== "empty").length}/{capacityPerBlock}
+                Capacity {blockEntries.filter((e) => e.status !== "empty" && e.status !== "evicted").length}/{capacityPerBlock}
               </span>
             </div>
 
