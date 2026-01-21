@@ -268,6 +268,36 @@ function SinglePromptVisualizer() {
 		return true;
 	}
 
+	function evictOneOldestSlot(next: KVEntry[]): boolean {
+		// Single-prompt Sliding Window / Pinned Prefix: evict only what we need to make room for 1 token.
+		// This matches the expectation that utilization stays ~full after reaching capacity.
+		let victimIndex = -1;
+		let victimWriteId = Number.POSITIVE_INFINITY;
+
+		for (let i = 0; i < next.length; i++) {
+			const e = next[i] as KVEntry & { writeId?: number };
+			if (isFreeStatus(e.status)) continue;
+			if (e.status === "pinned" || e.isPinned) continue;
+			if (evictionPolicy === EvictionPolicy.PinnedPrefix && i < BLOCK_CAPACITY) continue; // don't evict from Block 1
+			if (typeof e.writeId !== "number") continue;
+			if (e.writeId < victimWriteId) {
+				victimWriteId = e.writeId;
+				victimIndex = i;
+			}
+		}
+
+		if (victimIndex < 0) return false;
+		next[victimIndex] = { ...next[victimIndex], status: "evicted" as KVEntryStatus };
+		return true;
+	}
+
+	function evictForWrite(next: KVEntry[]): boolean {
+		if (evictionPolicy === EvictionPolicy.SlidingWindow || evictionPolicy === EvictionPolicy.PinnedPrefix) {
+			return evictOneOldestSlot(next);
+		}
+		return evictFullBlock(next);
+	}
+
 	function findWriteSlot(next: KVEntry[]): number {
 		// 1) Fill existing empty slots inside already-used (active) blocks first.
 		for (let b = 0; b < BLOCK_COUNT; b++) {
@@ -387,8 +417,8 @@ function SinglePromptVisualizer() {
 			// Find a write target: fill empties in active blocks first, then allocate a new block.
 			let targetSlot = findWriteSlot(next);
 			if (targetSlot < 0) {
-				// No free slots anywhere -> evict a FULL block (never partial).
-				evictFullBlock(next);
+				// No free slots anywhere -> evict according to policy and retry.
+				evictForWrite(next);
 				targetSlot = findWriteSlot(next);
 			}
 			if (targetSlot >= 0) {

@@ -269,18 +269,24 @@ export function MultiPromptVisualizer() {
 		// - If full, allocate a new block for this prompt
 		// - Never search other prompts' empty slots
 
-		// 1) Find all blocks owned by this prompt, in order.
-		const ownedBlocks: number[] = [];
+		// 1) Identify blocks currently owned by this prompt.
+		// IMPORTANT: ownership alone is not enough to infer the append position.
+		// We must append to the prompt's *tail* block (the one with the most recent write),
+		// not just the highest/lowest indexed owned block.
+		let tailBlock: number | null = null;
+		let tailLastWriteId = -1;
 		for (let b = 0; b < BLOCK_COUNT; b++) {
-			if (getBlockSingleOwnerPromptId(next, b) === promptId) {
-				ownedBlocks.push(b);
+			if (getBlockSingleOwnerPromptId(next, b) !== promptId) continue;
+			const last = getBlockLastWriteId(next, b);
+			if (last > tailLastWriteId) {
+				tailLastWriteId = last;
+				tailBlock = b;
 			}
 		}
 
-		// 2) Try to use the last block if it has space.
-		if (ownedBlocks.length > 0) {
-			const lastBlock = ownedBlocks[ownedBlocks.length - 1];
-			const slot = findFirstFreeInBlock(next, lastBlock);
+		// 2) Try to use the tail block if it has space.
+		if (tailBlock !== null) {
+			const slot = findFirstFreeInBlock(next, tailBlock);
 			if (slot >= 0) return slot;
 		}
 
