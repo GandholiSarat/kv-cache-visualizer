@@ -8,10 +8,15 @@ A conceptual, client‑side KV Cache and Paged Attention visualizer for LLM infe
 
 - Live Demo: https://kvcachevisualizer.vercel.app/
 
-## Screenshots / GIFs
+## Screenshots
 
-![Single Prompt Mode](docs/images/single-prompt-placeholder.png)
-![Multi Prompt Mode](docs/images/multi-prompt-placeholder.png)
+- Single Prompt
+ 
+![Single Prompt Mode](docs/images/single-prompt.png)
+
+- Multi-Prompt
+
+![Multi Prompt Mode](docs/images/multi-prompt.png)
 
 ## Core Concepts
 
