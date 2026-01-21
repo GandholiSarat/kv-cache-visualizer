@@ -3,16 +3,7 @@
 // Div-based KV cache block visualization (conceptual, not to scale).
 
 import React from "react";
-
-export type KVEntryStatus = "empty" | "new" | "reused" | "pinned" | "evicted" | "inactive";
-
-export interface KVEntry {
-  token: string;
-  status: KVEntryStatus;
-  slotIndex?: number;
-  isPinned?: boolean;
-  inWindow?: boolean;
-}
+import type { KVEntry, KVEntryStatus } from "@/core/types";
 
 export interface KVBlocksProps {
   blocks: number;

@@ -3,15 +3,7 @@
 // Div-based KV cache block visualization with prompt ownership metadata.
 
 import React from "react";
-
-export type MultiKVEntryStatus = "empty" | "new" | "reused" | "pinned" | "evicted" | "inactive";
-
-export interface MultiKVEntry {
-	token: string;
-	status: MultiKVEntryStatus;
-	promptId?: number; // 0-based: 0 => P1
-	promptPos?: number; // 0-based position within that prompt
-}
+import type { MultiKVEntry, MultiKVEntryStatus } from "@/core/types";
 
 export interface MultiKVBlocksProps {
 	blocks: number;
