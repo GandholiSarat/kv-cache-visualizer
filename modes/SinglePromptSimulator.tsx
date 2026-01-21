@@ -103,6 +103,10 @@ export function SinglePromptSimulator() {
 
 	const newCount = simState.entries.filter((e) => e.status === "new").length;
 	const reusedCount = simState.entries.filter((e) => e.status === "reused").length;
+	const retainedCount =
+		simState.evictionPolicy === EvictionPolicy.RecentN
+			? simState.entries.filter((e) => e.status === "inactive").length
+			: 0;
 	const pinnedCount = simState.entries.filter((e) => e.status === "pinned").length;
 	const emptyCount = simState.entries.filter((e) => e.status === "empty" || e.status === "evicted").length;
 
@@ -208,7 +212,7 @@ export function SinglePromptSimulator() {
 						<div style={{ fontSize: "13px", fontWeight: 700, color: "#e2e8f0", marginBottom: "8px" }}>Legend</div>
 						<div style={{ display: "grid", gap: "8px", fontSize: "12px" }}>
 							<ColorKey color="#2563eb" label="New KV (written this step)" />
-							<ColorKey color="#16a34a" label="Reused KV (decode reads)" />
+							<ColorKey color="#16a34a" label="Reused (attention reads)" />
 							<ColorKey color="#8b5cf6" label="Pinned KV (locked in prefix)" />
 							<ColorKey color="#64748b" label="Evicted KV (fading out)" />
 							<ColorKey color="#1e293b" label="Empty slot" />
@@ -245,6 +249,7 @@ export function SinglePromptSimulator() {
 							totalSlots={TOTAL_SLOTS}
 							newCount={newCount}
 							reusedCount={reusedCount}
+							retainedCount={retainedCount}
 							pinnedCount={pinnedCount}
 							emptyCount={emptyCount}
 						/>

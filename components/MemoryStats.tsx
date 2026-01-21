@@ -6,12 +6,13 @@ export interface MemoryStatsProps {
 	totalSlots: number;
 	newCount: number;
 	reusedCount: number;
+	retainedCount?: number;
 	pinnedCount: number;
 	emptyCount: number;
 }
 
-export function MemoryStats({ totalSlots, newCount, reusedCount, pinnedCount, emptyCount }: MemoryStatsProps) {
-	const used = newCount + reusedCount + pinnedCount;
+export function MemoryStats({ totalSlots, newCount, reusedCount, retainedCount = 0, pinnedCount, emptyCount }: MemoryStatsProps) {
+	const used = newCount + reusedCount + retainedCount + pinnedCount;
 	const usedPercent = Math.min(100, Math.round((used / totalSlots) * 100));
 	const barColor = usedPercent > 85 ? "#f59e0b" : usedPercent > 60 ? "#10b981" : "#2563eb";
 
@@ -50,7 +51,8 @@ export function MemoryStats({ totalSlots, newCount, reusedCount, pinnedCount, em
 
 			<div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px", marginTop: "12px" }}>
 				<StatChip label="New" value={newCount} color="#2563eb" />
-				<StatChip label="Reused" value={reusedCount} color="#16a34a" />
+				<StatChip label="Reused (attention reads)" value={reusedCount} color="#16a34a" />
+				{retainedCount > 0 && <StatChip label="Retained (not attended)" value={retainedCount} color="#475569" />}
 				{pinnedCount > 0 && <StatChip label="Pinned" value={pinnedCount} color="#8b5cf6" />}
 				<StatChip label="Empty" value={emptyCount} color="#475569" />
 			</div>
