@@ -3,7 +3,8 @@
 // Multi-prompt (continuous batching) KV cache visualizer.
 // Presentational component: receives all state via props.
 
-import { MultiKVBlocks, type MultiKVEntry } from "./MultiKVBlocks";
+import { MultiKVBlocks } from "./MultiKVBlocks";
+import type { MultiKVEntry } from "@/core/types";
 import { MultiPromptControls, type MultiVisualizationMode } from "./MultiPromptControls";
 import KVCacheExplanation from "./KVCacheExplanation";
 import { EvictionPolicy } from "../lib/constants";
