@@ -292,9 +292,9 @@ function SinglePromptVisualizer() {
 	}
 
 	function evictForWrite(next: KVEntry[]): boolean {
-		if (evictionPolicy === EvictionPolicy.SlidingWindow || evictionPolicy === EvictionPolicy.PinnedPrefix) {
-			return evictOneOldestSlot(next);
-		}
+		// For single-prompt visualization, eviction is block-granular.
+		// This ensures that when the write cursor wraps (e.g., after 32/32 are used),
+		// the oldest block is cleared first (grey), then refilled from its first slot.
 		return evictFullBlock(next);
 	}
 
@@ -325,7 +325,7 @@ function SinglePromptVisualizer() {
 		if (evictionPolicy === EvictionPolicy.PinnedPrefix) {
 			// Mark first non-empty block as pinned
 			const updated = entries.map((e, idx) => {
-				if (idx === 0 && e.status !== "empty" && e.status !== "pinned") {
+				if (idx === 0 && e.status !== "empty" && e.status !== "evicted" && e.status !== "pinned") {
 					return { ...e, status: "pinned" as KVEntryStatus, isPinned: true };
 				}
 				return e;
@@ -333,39 +333,39 @@ function SinglePromptVisualizer() {
 			return updated;
 		} else if (evictionPolicy === EvictionPolicy.RecentN) {
 			if (isDecodeRead) {
-				// During decode read, only the most recent N tokens are "reused" (attention reads)
-				// Older tokens remain in memory but are marked "inactive" (dimmed)
-				const nonEmptyEntries = entries.filter((e) => e.status !== "empty");
-				const recentCount = Math.min(nonEmptyEntries.length, recentN);
-				
-				// Find indices of non-empty entries
-				const nonEmptyIndices: number[] = [];
+				// During decode read, only the most recent N tokens are "reused" (attention reads).
+				// IMPORTANT: "most recent" must be based on write order, not slot index order,
+				// otherwise the visualization breaks once the cache wraps (after 32/32).
+				const occupied: Array<{ idx: number; writeId: number }> = [];
+				let newestWriteId = -1;
 				for (let i = 0; i < entries.length; i++) {
-					if (entries[i].status !== "empty") {
-						nonEmptyIndices.push(i);
-					}
+					const st = entries[i].status;
+					if (st === "empty" || st === "evicted") continue;
+					const anyEntry = entries[i] as KVEntry & { writeId?: number };
+					const writeId = typeof anyEntry.writeId === "number" ? anyEntry.writeId : -1;
+					newestWriteId = Math.max(newestWriteId, writeId);
+					occupied.push({ idx: i, writeId });
 				}
-				
-				// Mark the most recent tokens as reused, older ones as inactive
-				const recentStartIdx = nonEmptyIndices.length - recentCount;
-				
-				const updated = entries.map((e, idx) => {
-					if (e.status === "empty") return e;
-					
-					const positionInNonEmpty = nonEmptyIndices.indexOf(idx);
-					if (positionInNonEmpty >= recentStartIdx) {
-						// Within recent window: mark as reused (green)
+
+				occupied.sort((a, b) => a.writeId - b.writeId);
+				const recentCount = Math.min(occupied.length, recentN);
+				const recentSet = new Set<number>(occupied.slice(Math.max(0, occupied.length - recentCount)).map((x) => x.idx));
+
+				return entries.map((e, idx) => {
+					if (e.status === "empty" || e.status === "evicted") return e;
+					// Preserve only the newest-written KV as blue in the same step.
+					const anyEntry = e as KVEntry & { writeId?: number };
+					const writeId = typeof anyEntry.writeId === "number" ? anyEntry.writeId : -1;
+					if (e.status === "new" && writeId === newestWriteId) return { ...e, inWindow: true };
+					if (recentSet.has(idx)) {
 						return { ...e, status: "reused" as KVEntryStatus, inWindow: true };
-					} else {
-						// Outside recent window: mark as inactive (dimmed)
-						return { ...e, status: "inactive" as KVEntryStatus, inWindow: false };
 					}
+					return { ...e, status: "inactive" as KVEntryStatus, inWindow: false };
 				});
-				return updated;
 			} else {
 				// During prefill/decode-write, mark all non-empty blocks as in window
 				const updated = entries.map((e) => {
-					if (e.status !== "empty") {
+					if (e.status !== "empty" && e.status !== "evicted") {
 						return { ...e, inWindow: true };
 					}
 					return e;
@@ -396,7 +396,7 @@ function SinglePromptVisualizer() {
 				if (evictionPolicy === EvictionPolicy.SlidingWindow || evictionPolicy === EvictionPolicy.PinnedPrefix) {
 					// Sliding Window and Pinned Prefix: mark all non-empty and non-pinned as reused
 					for (const item of next) {
-						if (item.status !== "empty" && item.status !== "pinned") {
+						if (item.status !== "empty" && item.status !== "evicted" && item.status !== "pinned") {
 							item.status = "reused";
 						}
 					}
