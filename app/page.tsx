@@ -97,6 +97,30 @@ export default function Home() {
 			</section>
 
 			{promptMode === "single" ? <SinglePromptSimulator /> : <MultiPromptSimulator />}
+
+			<footer
+				style={{
+					marginTop: "auto",
+					paddingTop: "16px",
+					borderTop: "1px solid #0f172a",
+					fontSize: "12px",
+					color: "#94a3b8",
+					display: "flex",
+					justifyContent: "flex-end",
+					gap: "12px",
+				}}
+			>
+				<a
+					href="/contact"
+					style={{
+						color: "#60a5fa",
+						textDecoration: "underline",
+						fontWeight: 600,
+					}}
+				>
+					Made by Gandholi Sarat · Contributions
+				</a>
+			</footer>
 		</main>
 	);
 }
