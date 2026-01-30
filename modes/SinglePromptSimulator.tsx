@@ -200,7 +200,7 @@ export function SinglePromptSimulator() {
 				</div>
 
 				{/* Right Column: Legend and Memory Stats (stacked) */}
-				<div className="right-column" style={{ display: "grid", gap: "16px", gridColumn: "3 / 4", gridRow: "1 / 3" }}>
+				<div className="right-column legend-right-column" style={{ display: "grid", gap: "16px", gridColumn: "3 / 4", gridRow: "1 / 3" }}>
 					{/* Legend - Top */}
 					<div
 						className="mobile-panel"
